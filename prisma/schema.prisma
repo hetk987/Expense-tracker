@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PlaidAccount {
+  id            String   @id @default(uuid())
+  plaidAccountId String  @unique
+  name          String
+  mask          String?
+  type          String
+  subtype       String?
+  institutionId String
+  linkTokenId   String
+  accessToken   String   // Plaid access token
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  transactions PlaidTransaction[]
+  linkToken    PlaidLinkToken @relation(fields: [linkTokenId], references: [id])
+
+  @@index([plaidAccountId])
+  @@index([institutionId])
+}
+
+model PlaidTransaction {
+  id              String   @id @default(uuid())
+  plaidTransactionId String @unique
+  accountId       String
+  amount          Decimal  @db.Decimal(12, 2)
+  currency        String   @default("USD")
+  date            DateTime
+  name            String
+  merchantName    String?
+  category        String[]
+  pending         Boolean  @default(false)
+  paymentChannel  String?
+  transactionType String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  account PlaidAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([date])
+  @@index([pending])
+}
+
+model PlaidLinkToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  accounts PlaidAccount[]
+
+  @@index([token])
+  @@index([expiresAt])
+} 
